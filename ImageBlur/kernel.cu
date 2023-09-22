@@ -86,15 +86,31 @@ __global__ void blurGPUWxH()
 	}
 }
 
+void callBlurCPU()
+{
+	blurCPU();
+}
+
+void callBlurGPUSingle()
+{
+	blurGPUSingle << < 1, 1 >> > ();
+
+	CUDA_CALL(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
+}
+
+void callBlurGPUWxH()
+{
+	blurGPUWxH << < 1, dim3(width, height) >> > ();
+
+	CUDA_CALL(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
+}
+
 int main()
 {
 	initScreen();
 	initScreenCUDA();
 
-	//blurGPUWxH <<< 1, dim3(width, height) >>> (); 
-	blurCPU();
-
-	//CUDA_CALL(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
+	callBlurCPU();
 
 	showImage(blurredScreen);
 }
