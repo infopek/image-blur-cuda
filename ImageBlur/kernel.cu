@@ -86,7 +86,23 @@ __global__ void blurGPUWxH()
 	}
 }
 
-void callBlurCPU()
+__global__ void blurGPUMultipleBlocksCuda()
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x; 
+	const int y = blockIdx.y * blockDim.y + threadIdx.y; 
+
+	if (x > 0 && y > 0 && x < width && y < height)
+	{
+		dev_blurredScreen[y][x] = (
+			dev_screen[y - 1][x]
+			+ dev_screen[y][x - 1]
+			+ dev_screen[y][x]
+			+ dev_screen[y + 1][x]
+			+ dev_screen[y][x + 1]) / 5;
+	}
+}
+
+void blurGPUSingle()
 {
 	blurCPU();
 }
@@ -98,9 +114,9 @@ void callBlurGPUSingle()
 	CudaCall(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
 }
 
-void callBlurGPUWxH()
+void blurGPUMultipleBlocks()
 {
-	blurGPUWxH << < 1, dim3(width, height) >> > ();
+	blurGPUMultipleBlocksCuda << < dim3(10, 10), dim3(30, 30) >> > ();
 
 	CudaCall(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
 }
