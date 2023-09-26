@@ -10,7 +10,7 @@
 #include "display.h"
 #include "random.h"
 
-#define CUDA_CALL( call )               \
+#define CudaCall( call )               \
 {                                       \
 	cudaError_t result = call;              \
 	if ( cudaSuccess != result )            \
@@ -37,8 +37,8 @@ void initScreen()
 
 void initScreenCUDA()
 {
-	CUDA_CALL(cudaMemcpyToSymbol(dev_screen, screen, sizeof(screen)));
-	CUDA_CALL(cudaMemcpyToSymbol(dev_blurredScreen, blurredScreen, sizeof(blurredScreen)));
+	CudaCall(cudaMemcpyToSymbol(dev_screen, screen, sizeof(screen)));
+	CudaCall(cudaMemcpyToSymbol(dev_blurredScreen, blurredScreen, sizeof(blurredScreen)));
 }
 
 void blurCPU()
@@ -95,14 +95,14 @@ void callBlurGPUSingle()
 {
 	blurGPUSingle << < 1, 1 >> > ();
 
-	CUDA_CALL(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
+	CudaCall(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
 }
 
 void callBlurGPUWxH()
 {
 	blurGPUWxH << < 1, dim3(width, height) >> > ();
 
-	CUDA_CALL(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
+	CudaCall(cudaMemcpyFromSymbol(blurredScreen, dev_blurredScreen, sizeof(blurredScreen)));
 }
 
 int main()
