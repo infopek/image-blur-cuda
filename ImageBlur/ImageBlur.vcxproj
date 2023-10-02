@@ -59,13 +59,15 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_world480d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_world480d.lib;opencv_world480.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CudaRuntime>Static</CudaRuntime>
-      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <HostDebugInfo>true</HostDebugInfo>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -76,47 +78,61 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_world480d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_world480.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CudaRuntime>Static</CudaRuntime>
-      <CodeGeneration>compute_52,sm_52</CodeGeneration>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CodeGeneration>compute_75,sm_75</CodeGeneration>
+      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="cuda\blur.cu">
+    <CudaCompile Include="cuda\box_blur.cu">
       <Runtime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">InheritFromHost</Runtime>
       <Runtime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">InheritFromHost</Runtime>
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EditAndContinue</DebugInformationFormat>
     </CudaCompile>
+    <CudaCompile Include="cuda\median_filter.cu">
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EditAndContinue</DebugInformationFormat>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cuda\blur.h" />
-    <ClInclude Include="utils\constants.h" />
+    <ClInclude Include="cuda\box_blur.h" />
+    <ClInclude Include="utils\cuda_utils.h" />
+    <ClInclude Include="cuda\median_filter.h" />
     <ClInclude Include="utils\random.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="tests\box-blur-tests\box_blur_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\nature.jpg" />
+    <Image Include="res\noisyimg.png" />
     <Image Include="res\xeri_concern.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.2.targets" />
+    <Import Project="..\packages\googletest.redist.1.8.3\build\native\googletest.redist.targets" Condition="Exists('..\packages\googletest.redist.1.8.3\build\native\googletest.redist.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\googletest.redist.1.8.3\build\native\googletest.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\googletest.redist.1.8.3\build\native\googletest.redist.targets'))" />
+  </Target>
 </Project>

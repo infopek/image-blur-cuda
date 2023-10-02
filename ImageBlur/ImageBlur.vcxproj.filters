@@ -1,21 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CudaCompile Include="cuda\blur.cu" />
+    <CudaCompile Include="cuda\box_blur.cu" />
+    <CudaCompile Include="cuda\median_filter.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="utils\constants.h" />
     <ClInclude Include="utils\random.h" />
-    <ClInclude Include="cuda\blur.h" />
+    <ClInclude Include="cuda\box_blur.h" />
+    <ClInclude Include="cuda\median_filter.h" />
+    <ClInclude Include="utils\cuda_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="tests\box-blur-tests\box_blur_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\nature.jpg" />
     <Image Include="res\xeri_concern.jpg" />
+    <Image Include="res\noisyimg.png" />
   </ItemGroup>
 </Project>
