@@ -63,6 +63,9 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <CudaRuntime>Static</CudaRuntime>
+      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,6 +76,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -83,18 +87,33 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <CudaRuntime>Static</CudaRuntime>
+      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu" />
+    <CudaCompile Include="cuda\blur.cu">
+      <Runtime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">InheritFromHost</Runtime>
+      <Runtime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">InheritFromHost</Runtime>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EditAndContinue</DebugInformationFormat>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="constants.h" />
-    <ClInclude Include="display.h" />
-    <ClInclude Include="random.h" />
+    <ClInclude Include="cuda\blur.h" />
+    <ClInclude Include="utils\constants.h" />
+    <ClInclude Include="utils\random.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\application.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\nature.jpg" />
+    <Image Include="res\xeri_concern.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
