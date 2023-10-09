@@ -45,7 +45,7 @@ __global__ void blurImage(const unsigned char* src, unsigned char* dst, size_t w
 
 		unsigned int diameter = 2 * kernelRadius + 1;
 		dst[idx] = sum / (diameter * diameter);
-		}
+	}
 }
 
 BoxBlur::BoxBlur(size_t width, size_t height)

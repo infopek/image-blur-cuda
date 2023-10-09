@@ -6,10 +6,10 @@
 class BoxBlur
 {
 public:
-	BoxBlur(size_t imgWidth, size_t imgHeight);
+	BoxBlur(size_t width, size_t height);
 	~BoxBlur();
 
-	void blur(unsigned char* src, unsigned char* dst, int kernelSize);
+	void blur(const unsigned char* src, unsigned char* dst, int kernelRadius);
 
 private:
 	void init();
