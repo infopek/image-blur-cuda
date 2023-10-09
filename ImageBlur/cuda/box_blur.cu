@@ -72,17 +72,25 @@ void BoxBlur::shutdown()
 	CUDA_CALL(cudaFree(dev_srcBox));
 }
 
-void BoxBlur::blur(unsigned char* src, unsigned char* dst, int kernelSize)
+void BoxBlur::blur(const unsigned char* src, unsigned char* dst, int kernelRadius)
 {
+	// Copy source buffer to device buffer
 	size_t size = m_width * m_height * sizeof(unsigned char);
-
 	CUDA_CALL(cudaMemcpy(dev_srcBox, src, size, cudaMemcpyHostToDevice));
 
+	// Set up kernel launch dimensions
 	dim3 blockSize(32, 32);
+	int tileSize = blockSize.x - 2 * kernelRadius;
+	dim3 gridSize(m_width / tileSize + 1,
+		m_height / tileSize + 1);
 
-	dim3 gridSize((m_width + blockSize.x - 1) / blockSize.x, (m_height + blockSize.y - 1) / blockSize.y);
+	int sharedMemSize = blockSize.x * blockSize.y * sizeof(unsigned char);
 
-	blurImage KERNEL_ARGS2(gridSize, blockSize)(dev_srcBox, dev_dstBox, m_width, m_height, kernelSize);
+	// Launch kernel
+	CUDA_CALL(cudaDeviceSynchronize());
+	blurImage KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcBox, dev_dstBox, m_width, m_height, kernelRadius, tileSize);
+	CUDA_CALL(cudaDeviceSynchronize());
 
+	// Copy blurred image to destination
 	CUDA_CALL(cudaMemcpy(dst, dev_dstBox, size, cudaMemcpyDeviceToHost));
 }
