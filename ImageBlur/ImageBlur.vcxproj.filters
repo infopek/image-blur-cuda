@@ -22,5 +22,6 @@
     <Image Include="res\nature.jpg" />
     <Image Include="res\xeri_concern.jpg" />
     <Image Include="res\noisyimg.png" />
+    <Image Include="res\lena.png" />
   </ItemGroup>
 </Project>

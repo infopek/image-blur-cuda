@@ -4,3 +4,4 @@
 #define __device__ __location__(device)
 #define __global__ __location__(global)
 #define __host__ __location__(host)
+#define __shared__ __location__(shared)

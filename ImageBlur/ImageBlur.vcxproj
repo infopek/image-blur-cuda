@@ -120,6 +120,7 @@
     <ClCompile Include="tests\box-blur-tests\box_blur_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\lena.png" />
     <Image Include="res\nature.jpg" />
     <Image Include="res\noisyimg.png" />
     <Image Include="res\xeri_concern.jpg" />
