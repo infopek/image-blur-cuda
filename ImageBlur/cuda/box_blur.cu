@@ -4,6 +4,12 @@
 #include "box_blur.h"
 #include "../utils/cuda_utils.h"
 
+#ifndef __CUDACC__
+#define __CUDACC__
+#endif
+
+#include <device_functions.h>
+
 __device__ unsigned char* dev_srcBox;
 __device__ unsigned char* dev_dstBox;
 
