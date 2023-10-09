@@ -13,47 +13,39 @@
 __device__ unsigned char* dev_srcBox;
 __device__ unsigned char* dev_dstBox;
 
-__global__ void blurImage(unsigned char* src, unsigned char* dst, size_t width, size_t height, int kernelSize)
+extern __shared__ unsigned char sh_kernel[];
+
+__global__ void blurImage(const unsigned char* src, unsigned char* dst, size_t width, size_t height, int kernelRadius, int tileSize)
 {
-	const unsigned int x = blockDim.x * blockIdx.x + threadIdx.x;
-	const unsigned int y = blockDim.y * blockIdx.y + threadIdx.y;
+	// Get current position of thread in image
+	int x = blockIdx.x * tileSize + threadIdx.x - kernelRadius;
+	int y = blockIdx.y * tileSize + threadIdx.y - kernelRadius;
 
-	/*__shared__ unsigned char kernel[9 * 9];
-	kernel[blockDim.x * threadIdx.y + threadIdx.x] = src[y * width + x];*/
+	// Clamp position to edge of image
+	x = fmaxf(0, x);
+	x = fminf(x, width - 1);
+	y = fmaxf(y, 0);
+	y = fminf(y, height - 1);
 
-	//__syncthreads();
+	// Calculate global and (block) local index
+	unsigned int idx = y * width + x;
+	unsigned int blockIdx = blockDim.x * threadIdx.y + threadIdx.x;
 
-	int sum{};
-	int numPixels{};
+	// Each thread in a block copies a pixel to shared block from src image
+	sh_kernel[blockIdx] = src[idx];
+	__syncthreads();
 
-	for (int r = -kernelSize / 2; r <= kernelSize / 2; ++r)
+	if (threadIdx.x >= kernelRadius && threadIdx.y >= kernelRadius && threadIdx.x < (blockDim.x - kernelRadius) && threadIdx.y < (blockDim.y - kernelRadius))
 	{
-		for (int c = -kernelSize / 2; c <= kernelSize / 2; ++c)
-		{
-			int row = y + r;
-			int col = x + c;
+		// Use average of kernel to apply blur effect
+		float sum{};
+		for (int r = -kernelRadius; r <= kernelRadius; ++r)
+			for (int c = -kernelRadius; c <= kernelRadius; ++c)
+				sum += (float)sh_kernel[blockIdx + (r * blockDim.x) + c];
 
-			if (row >= 0 && row < height && col >= 0 && col < width)
-			{
-				sum += src[row * width + col];
-				++numPixels;
-			}
+		unsigned int diameter = 2 * kernelRadius + 1;
+		dst[idx] = sum / (diameter * diameter);
 		}
-	}
-	/*if (threadIdx.x < blockDim.x && threadIdx.y < blockDim.y)
-	{
-		for (int r = 0; r < blockDim.y; r++)
-		{
-			for (int c = 0; c < blockDim.x; c++)
-			{
-				int row = threadIdx.y + r;
-				int col = threadIdx.x + c;
-				sum += (int)kernel[row * blockDim.x + col];
-			}
-		}
-	}*/
-	//sum /= kernelSize * kernelSize;
-	dst[y * width + x] = (unsigned char)(sum / numPixels);
 }
 
 BoxBlur::BoxBlur(size_t width, size_t height)
