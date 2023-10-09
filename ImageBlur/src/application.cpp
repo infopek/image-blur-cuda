@@ -10,37 +10,41 @@
 
 namespace fs = std::filesystem;
 
+
+
 void show(const cv::Mat& image)
 {
 	cv::imshow("Image", image);
 	cv::waitKey(0);
 }
 
-void boxBlur(cv::Mat& image)
+/// <summary>
+/// Blurs an image using box blur.
+/// </summary>
+/// <param name="image">The image you want to blur.</param>
+/// <param name="kernelRadius">A kernel with size (2 * kernelRadius + 1) will be used for blurring.</param>
+void boxBlur(cv::Mat& image, int kernelRadius)
 {
-	BoxBlur blurrer(image.cols, image.rows);
-	int kernelSize = 6;
-
 	std::vector<cv::Mat> channels;
 	cv::split(image, channels);
 
-	blurrer.blur(channels[2].data, channels[2].data, kernelSize);
-	blurrer.blur(channels[1].data, channels[1].data, kernelSize);
-	blurrer.blur(channels[0].data, channels[0].data, kernelSize);
+	BoxBlur blurrer(image.cols, image.rows);
+	blurrer.blur(channels[2].data, channels[2].data, kernelRadius);	// B 
+	blurrer.blur(channels[1].data, channels[1].data, kernelRadius);	// G
+	blurrer.blur(channels[0].data, channels[0].data, kernelRadius);	// R 
 
 	cv::merge(channels, image);
 }
 
 void medianFilter(cv::Mat& image)
 {
-	MedianFilter filterer(image.cols, image.rows);
-
 	std::vector<cv::Mat> channels;
 	cv::split(image, channels);
 
-	filterer.filter(channels[2].data, channels[2].data);
-	filterer.filter(channels[1].data, channels[1].data);
-	filterer.filter(channels[0].data, channels[0].data);
+	MedianFilter filterer(image.cols, image.rows);
+	filterer.filter(channels[2].data, channels[2].data);	// B
+	filterer.filter(channels[1].data, channels[1].data);	// G
+	filterer.filter(channels[0].data, channels[0].data);	// R
 
 	cv::merge(channels, image);
 }
@@ -53,13 +57,9 @@ int main(int argc, char* argv[])
 
 	cv::Mat image = cv::imread(fullPath.string());
 
-	//show(image);
-	
-	//medianFilter(image);
-	boxBlur(image);
+	show(image);
 
-	//cv::medianBlur(image, image, 3);
-	//cv::blur(image, image, cv::Size(5, 5));
+	boxBlur(image, 3);
 
 	show(image);
 }
