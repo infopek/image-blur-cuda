@@ -15,7 +15,7 @@ __device__ unsigned char* dev_dstBox;
 
 extern __shared__ unsigned char sh_kernel[];
 
-__global__ void blurImage(const unsigned char* src, unsigned char* dst, size_t width, size_t height, int kernelRadius, int tileSize)
+__global__ void blurImageBox(const unsigned char* src, unsigned char* dst, size_t width, size_t height, int kernelRadius, int tileSize)
 {
 	// Get current position of thread in image
 	int x = blockIdx.x * tileSize + threadIdx.x - kernelRadius;
@@ -38,7 +38,7 @@ __global__ void blurImage(const unsigned char* src, unsigned char* dst, size_t w
 	if (threadIdx.x >= kernelRadius && threadIdx.y >= kernelRadius && threadIdx.x < (blockDim.x - kernelRadius) && threadIdx.y < (blockDim.y - kernelRadius))
 	{
 		// Use average of kernel to apply blur effect
-		float sum{};
+		float sum = 0.0f;
 		for (int r = -kernelRadius; r <= kernelRadius; ++r)
 			for (int c = -kernelRadius; c <= kernelRadius; ++c)
 				sum += (float)sh_kernel[blockIdx + (r * blockDim.x) + c];
@@ -88,7 +88,7 @@ void BoxBlur::blur(const unsigned char* src, unsigned char* dst, int kernelRadiu
 
 	// Launch kernel
 	CUDA_CALL(cudaDeviceSynchronize());
-	blurImage KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcBox, dev_dstBox, m_width, m_height, kernelRadius, tileSize);
+	blurImageBox KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcBox, dev_dstBox, m_width, m_height, kernelRadius, tileSize);
 	CUDA_CALL(cudaDeviceSynchronize());
 
 	// Copy blurred image to destination
