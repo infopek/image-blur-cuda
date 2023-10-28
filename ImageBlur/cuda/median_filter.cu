@@ -4,57 +4,48 @@
 #include "median_filter.h"
 #include "../utils/cuda_utils.h"
 
+#ifndef __CUDACC__
+#define __CUDACC__
+#endif
+
+#include <device_functions.h>
+
 __device__ unsigned char* dev_srcMedian;
 __device__ unsigned char* dev_dstMedian;
 
-/// <summary>
-/// Swaps 'a' and 'b' if 'b' is less than 'a'.
-/// </summary>
-
-__device__ void sortMask(unsigned char* mask, int length)
-{
-	for (int i = 0; i < length; i++)
-	{
-		for (int j = i + 1; j < length; j++)
-		{
-			if (mask[j] < mask[i])
-			{
-				unsigned char tmp = mask[i];
-				mask[i] = mask[j];
-				mask[j] = tmp;
-			}
-		}
-	}
-}
+constexpr int maskDim = 3;
+constexpr int maskLength = maskDim * maskDim;
+extern __shared__ unsigned char sh_mask[];
 
 __global__ void filterImage(unsigned char* src, unsigned char* dst, size_t width, size_t height)
 {
 	const unsigned int x = blockDim.x * blockIdx.x + threadIdx.x;
 	const unsigned int y = blockDim.y * blockIdx.y + threadIdx.y;
 
-	const int maskSize = 3;
-	const int length = maskSize * maskSize;
+	// Fill mask with corresponding image pixels
+	sh_mask[threadIdx.y * blockDim.x + threadIdx.x] = src[y * width + x];
+	__syncthreads();
 
-	unsigned char* mask = new unsigned char[length];
-
-	for (int r = 0; r < maskSize; r++)
+	// The first thread sorts the mask using insertion sort
+	if (threadIdx.x == 0 && threadIdx.y == 0)
 	{
-		for (int c = 0; c < maskSize; c++)
+		int i = 1;
+		while (i < maskLength)
 		{
-			int row = y + r - 1;
-			int col = x + c - 1;
-
-			if (row >= 0 && col >= 0 && row < height && col < width)
-				mask[r * maskSize + c] = src[row * width + col];
+			int x = sh_mask[i];
+			int j = i - 1;
+			while (j >= 0 && sh_mask[j] > x)
+			{
+				sh_mask[j + 1] = sh_mask[j];
+				--j;
+			}
+			sh_mask[j + 1] = x;
+			++i;
 		}
 	}
+	__syncthreads();
 
-	sortMask(mask, length);
-
-	unsigned char median = mask[length / 2];
-	dst[y * width + x] = median;
-
-	delete[] mask;
+	dst[y * width + x] = sh_mask[maskLength / 2];	// maskSize / 2 => median of mask
 }
 
 MedianFilter::MedianFilter(size_t width, size_t height)
@@ -74,9 +65,12 @@ void MedianFilter::filter(unsigned char* src, unsigned char* dst)
 
 	CUDA_CALL(cudaMemcpy(dev_srcMedian, src, size, cudaMemcpyHostToDevice));
 
-	dim3 blockSize(16, 16);
+	dim3 blockSize(maskDim, maskDim);
 	dim3 gridSize((m_width + blockSize.x - 1) / blockSize.x, (m_height + blockSize.y - 1) / blockSize.y);
-	filterImage KERNEL_ARGS2(gridSize, blockSize)(dev_srcMedian, dev_dstMedian, m_width, m_height);
+	size_t sharedMemSize = maskLength * sizeof(unsigned char);
+	filterImage KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcMedian, dev_dstMedian, m_width, m_height);
+
+	CUDA_CALL(cudaDeviceSynchronize());
 
 	CUDA_CALL(cudaMemcpy(dst, dev_dstMedian, size, cudaMemcpyDeviceToHost));
 }
