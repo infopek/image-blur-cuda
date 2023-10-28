@@ -3,20 +3,20 @@
   <ItemGroup>
     <CudaCompile Include="cuda\box_blur.cu" />
     <CudaCompile Include="cuda\median_filter.cu" />
+    <CudaCompile Include="cuda\gauss_blur.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utils\random.h" />
     <ClInclude Include="cuda\box_blur.h" />
     <ClInclude Include="cuda\median_filter.h" />
     <ClInclude Include="utils\cuda_utils.h" />
+    <ClInclude Include="cuda\gauss_blur.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\application.cpp" />
-    <ClCompile Include="tests\box-blur-tests\box_blur_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\nature.jpg" />
