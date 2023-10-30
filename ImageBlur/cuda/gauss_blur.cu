@@ -14,9 +14,9 @@
 
 __device__ unsigned char* dev_srcGauss;
 __device__ unsigned char* dev_dstGauss;
+__device__ float* dev_weights;
 
-
-__device__ float gaussFunction(float x, float y, float sigma)
+float gaussFunction(float x, float y, float sigma)
 {
 	float invSigmaSqr = 1.0f / (sigma * sigma);
 
@@ -25,20 +25,37 @@ __device__ float gaussFunction(float x, float y, float sigma)
 	return denom * expf(exponent);	// 1 / (2 * pi * sigma^2) * e ^ [-(x ^ 2 + y ^ 2) / (2 * sigma ^ 2)]
 }
 
-__constant__ float weights[25]{
-		1, 4, 7, 4, 1,
-		4, 16, 26, 16, 4,
-		7, 26, 41, 26, 7,
-		4, 16, 26, 16, 4,
-		1, 4, 7, 4, 1
-};
-
-__global__ void blurImageGauss(const unsigned char* src, unsigned char* dst, size_t width, size_t height, int tileSize, int kernelRadius, float sigma)
+void calculateWeights(float* weights, float sigma, int kernelRadius)
 {
+	// Fill weights using Gauss function
+	int diameter = 2 * kernelRadius + 1;
+	float sum = 0.0f;
+	for (int y = -kernelRadius; y <= kernelRadius; ++y)
+	{
+		for (int x = -kernelRadius; x <= kernelRadius; ++x)
+		{
+			int weightIdx = (y + kernelRadius) * diameter + (x + kernelRadius);
+			weights[weightIdx] = gaussFunction(static_cast<float>(x), static_cast<float>(y), sigma);
+			sum += weights[weightIdx];
+		}
+	}
+
+	// Normalize weights
+	for (int i = 0; i < diameter; i++)
+		for (int j = 0; j < diameter; j++)
+			weights[i * diameter + j] /= sum;
+}
+
+__global__ void blurImageGauss(const unsigned char* src, unsigned char* dst, float* weights, size_t width, size_t height, int tileSize, int kernelRadius, float sigma)
+{
+	int diameter = 2 * kernelRadius + 1;
+
+	// Shared data
 	extern __shared__ unsigned char sh_kernel[];
+	unsigned char* sharedImageData = sh_kernel;
+	float* sharedWeights = (float*)&sharedImageData[blockDim.x * blockDim.y];
 
-	//float* sharedWeights = (float*)&sharedImageData[blockDim.x * blockDim.y];
-
+	// Calculate global indices
 	int x = blockIdx.x * tileSize + threadIdx.x - kernelRadius;
 	int y = blockIdx.y * tileSize + threadIdx.y - kernelRadius;
 
@@ -48,27 +65,26 @@ __global__ void blurImageGauss(const unsigned char* src, unsigned char* dst, siz
 
 	// Calculate indices
 	unsigned int idx = y * width + x;
-	unsigned int blockIdx = blockDim.x * threadIdx.y + threadIdx.x;
-
-	// Setup weights matrix using gauss function
-
-	// Normalize weights
+	unsigned int blockIdx = threadIdx.y * blockDim.x + threadIdx.x;
+	unsigned int weightIdx = threadIdx.y * diameter + threadIdx.x;
 
 	// Each thread in a block copies a pixel to shared block from src image
-	sh_kernel[blockIdx] = src[idx];
+	sharedImageData[blockIdx] = src[idx];
 	__syncthreads();
 
-	// Each pixel val in shared block is weighted
+	// Some threads also copy weights
+	if (weightIdx < diameter * diameter)
+		sharedWeights[weightIdx] = weights[weightIdx];
 
 	// Apply gauss blur
 	if (threadIdx.x >= kernelRadius && threadIdx.y >= kernelRadius && threadIdx.x < (blockDim.x - kernelRadius) && threadIdx.y < (blockDim.y - kernelRadius))
 	{
-		int finalSum = 0;
+		float sum = 0.0f;
 		for (int r = -kernelRadius; r <= kernelRadius; ++r)
 			for (int c = -kernelRadius; c <= kernelRadius; ++c)
-				finalSum += sh_kernel[blockIdx + (r * blockDim.x) + c] * weights[(r + kernelRadius) * 5 + (c + kernelRadius)];
+				sum += (float)sharedImageData[blockIdx + (r * blockDim.x) + c] * sharedWeights[(r + kernelRadius) * diameter + (c + kernelRadius)];
 
-		dst[idx] = finalSum / 273;
+		dst[idx] = (unsigned char)sum;
 	}
 }
 
@@ -86,8 +102,8 @@ GaussBlur::~GaussBlur()
 void GaussBlur::init()
 {
 	size_t size = m_width * m_height;
-	CUDA_CALL(cudaMalloc<unsigned char>(&dev_srcGauss, size));
-	CUDA_CALL(cudaMalloc<unsigned char>(&dev_dstGauss, size));
+	CUDA_CALL(cudaMalloc(&dev_srcGauss, size));
+	CUDA_CALL(cudaMalloc(&dev_dstGauss, size));
 }
 
 void GaussBlur::shutdown()
@@ -98,23 +114,33 @@ void GaussBlur::shutdown()
 
 void GaussBlur::blur(const unsigned char* src, unsigned char* dst, float sigma, int kernelRadius)
 {
+	// Calculate weights
+	int diameter = 2 * kernelRadius + 1;
+	float* weights = new float[diameter * diameter];
+	calculateWeights(weights, sigma, kernelRadius);
+
+	CUDA_CALL(cudaMalloc(&dev_weights, diameter * diameter * sizeof(float)));
+	CUDA_CALL(cudaMemcpy(dev_weights, weights, diameter * diameter * sizeof(float), cudaMemcpyHostToDevice));
+
 	// Copy source buffer to device buffer
 	size_t size = m_width * m_height * sizeof(unsigned char);
 	CUDA_CALL(cudaMemcpy(dev_srcGauss, src, size, cudaMemcpyHostToDevice));
 
 	// Set up kernel launch dimensions
-	dim3 blockSize(16, 16);
+	dim3 blockSize(32, 32);
 	int tileSize = blockSize.x - 2 * kernelRadius;
 	dim3 gridSize(m_width / tileSize + 1,
 		m_height / tileSize + 1);
 
-	int diameter = 2 * kernelRadius + 1;
-	size_t sharedMemSize = blockSize.x * blockSize.y * sizeof(unsigned char);
+	size_t sharedMemSize = blockSize.x * blockSize.y * sizeof(unsigned char) + diameter * diameter * sizeof(float);
 
 	// Launch kernel
-	blurImageGauss KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcGauss, dev_dstGauss, m_width, m_height, tileSize, kernelRadius, sigma);
+	blurImageGauss KERNEL_ARGS3(gridSize, blockSize, sharedMemSize)(dev_srcGauss, dev_dstGauss, dev_weights, m_width, m_height, tileSize, kernelRadius, sigma);
 	CUDA_CALL(cudaDeviceSynchronize());
 
 	// Copy blurred image to destination
 	CUDA_CALL(cudaMemcpy(dst, dev_dstGauss, size, cudaMemcpyDeviceToHost));
+
+	CUDA_CALL(cudaFree(dev_weights));
+	delete[] weights;
 }
