@@ -94,21 +94,14 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="cuda\box_blur.cu">
-      <Runtime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">InheritFromHost</Runtime>
-      <Runtime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">InheritFromHost</Runtime>
-      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
-      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EditAndContinue</DebugInformationFormat>
-    </CudaCompile>
-    <CudaCompile Include="cuda\gauss_blur.cu" />
+    <CudaCompile Include="cuda\blur.cu" />
     <CudaCompile Include="cuda\median_filter.cu">
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EditAndContinue</DebugInformationFormat>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cuda\box_blur.h" />
-    <ClInclude Include="cuda\gauss_blur.h" />
+    <ClInclude Include="cuda\blur.h" />
     <ClInclude Include="utils\cuda_utils.h" />
     <ClInclude Include="cuda\median_filter.h" />
     <ClInclude Include="utils\random.h" />

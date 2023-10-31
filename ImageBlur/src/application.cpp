@@ -2,9 +2,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "../cuda/box_blur.h"
-#include "../cuda/median_filter.h"
-#include "../cuda/gauss_blur.h"
+#include "../cuda/blur.h"
 
 #include <iostream>
 #include <filesystem>
@@ -18,47 +16,26 @@ void show(const cv::Mat& image)
 	cv::waitKey(0);
 }
 
-/// <summary>
-/// Blurs an image using box blur.
-/// </summary>
-/// <param name="src">The image you want to blur.</param>
-/// <param name="dst">The blurred image.</param>
-/// <param name="kernelRadius">A kernel with size (2 * kernelRadius + 1) will be used for blurring.</param>
 void boxBlur(const cv::Mat& src, cv::Mat& dst, int kernelRadius)
 {
 	std::vector<cv::Mat> channels;
 	cv::split(src, channels);
 
-	BoxBlur blurrer(src.cols, src.rows);
-	blurrer.blur(channels[2].data, channels[2].data, kernelRadius);	// B 
-	blurrer.blur(channels[1].data, channels[1].data, kernelRadius);	// G
-	blurrer.blur(channels[0].data, channels[0].data, kernelRadius);	// R 
+	Blur::boxBlur(channels[2].data, channels[2].data, channels[2].cols, channels[2].rows, kernelRadius);	// B
+	Blur::boxBlur(channels[1].data, channels[1].data, channels[1].cols, channels[1].rows, kernelRadius);	// G
+	Blur::boxBlur(channels[0].data, channels[0].data, channels[0].cols, channels[0].rows, kernelRadius);	// R
 
 	cv::merge(channels, dst);
 }
 
-void medianFilter(const cv::Mat& src, cv::Mat& dst)
+void gaussBlur(const cv::Mat& src, cv::Mat& dst, int kernelRadius, float sigma)
 {
 	std::vector<cv::Mat> channels;
 	cv::split(src, channels);
 
-	MedianFilter filterer(src.cols, src.rows);
-	filterer.filter(channels[2].data, channels[2].data);	// B
-	filterer.filter(channels[1].data, channels[1].data);	// G
-	filterer.filter(channels[0].data, channels[0].data);	// R
-
-	cv::merge(channels, dst);
-}
-
-void gaussBlur(const cv::Mat& src, cv::Mat& dst, float sigma, int kernelRadius)
-{
-	std::vector<cv::Mat> channels;
-	cv::split(src, channels);
-
-	GaussBlur blurrer(src.cols, src.rows);
-	blurrer.blur(channels[2].data, channels[2].data, sigma, kernelRadius);	// B
-	blurrer.blur(channels[1].data, channels[1].data, sigma, kernelRadius);	// G
-	blurrer.blur(channels[0].data, channels[0].data, sigma, kernelRadius);	// R
+	Blur::gaussBlur(channels[2].data, channels[2].data, channels[2].cols, channels[2].rows, kernelRadius, sigma);	// B
+	Blur::gaussBlur(channels[1].data, channels[1].data, channels[1].cols, channels[1].rows, kernelRadius, sigma);	// G
+	Blur::gaussBlur(channels[0].data, channels[0].data, channels[0].cols, channels[0].rows, kernelRadius, sigma);	// R
 
 	cv::merge(channels, dst);
 }
@@ -66,7 +43,7 @@ void gaussBlur(const cv::Mat& src, cv::Mat& dst, float sigma, int kernelRadius)
 int main(int argc, char* argv[])
 {
 	fs::path dir("res");
-	fs::path file("lena.png");
+	fs::path file("nature.jpg");
 	fs::path fullPath = dir / file;
 
 	cv::Mat image = cv::imread(fullPath.string());
@@ -74,8 +51,8 @@ int main(int argc, char* argv[])
 	show(image);
 
 	float sigma = 1.5f;
-	int kernelRadius = 5;
-	gaussBlur(image, image, sigma, kernelRadius);
+	int kernelRadius = 3;
+	gaussBlur(image, image, kernelRadius, sigma);
 
 	show(image);
 }
