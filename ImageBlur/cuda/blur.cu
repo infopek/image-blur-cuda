@@ -105,7 +105,7 @@ void Blur::boxBlur(const unsigned char* src, unsigned char* dst, size_t width, s
 	CUDA_CALL(cudaMemcpy(dev_src, src, imageSize, cudaMemcpyHostToDevice));
 
 	// Kernel launch dimensions & parameters
-	dim3 blockSize(32, 32);
+	dim3 blockSize(16, 16);
 	int tileSize = blockSize.x - 2 * kernelRadius;
 
 	dim3 gridSize(width / tileSize + 1,
@@ -144,7 +144,7 @@ void Blur::gaussBlur(const unsigned char* src, unsigned char* dst, size_t width,
 	CUDA_CALL(cudaMemcpy(dev_weights, weights, kernelSize, cudaMemcpyHostToDevice));
 
 	// Kernel launch dimensions & parameters
-	dim3 blockSize(32, 32);
+	dim3 blockSize(16, 16);
 	int tileSize = blockSize.x - 2 * kernelRadius;
 
 	dim3 gridSize(width / tileSize + 1,
@@ -179,6 +179,7 @@ void Blur::calculateGaussKernel(float* gaussKernel, int kernelRadius, float sigm
 {
 	int diameter = 2 * kernelRadius + 1;
 
+	// Fill kernel
 	float sum = 0.0f;
 	for (int y = -kernelRadius; y <= kernelRadius; ++y)
 	{
@@ -190,6 +191,7 @@ void Blur::calculateGaussKernel(float* gaussKernel, int kernelRadius, float sigm
 		}
 	}
 
+	// Normalize kernel
 	std::for_each(gaussKernel, gaussKernel + diameter * diameter,
 		[=](float& f) {
 			f /= sum;

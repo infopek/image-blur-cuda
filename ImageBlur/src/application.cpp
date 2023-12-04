@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
 
 	show(image);
 
-	float sigma = 1.5f;
+	//float sigma = 1.7f;
 	int kernelRadius = 3;
-	gaussBlur(image, image, kernelRadius, sigma);
+	boxBlur(image, image, kernelRadius);
 
 	show(image);
 }
